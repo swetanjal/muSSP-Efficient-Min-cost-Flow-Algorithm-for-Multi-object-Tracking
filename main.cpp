@@ -5,15 +5,12 @@ const int MAXN = 1e5 + 5;
 int N, M; // Number of nodes, Number of edges
 vector <int> edges[MAXN];
 vector <long double> cost[MAXN];
-vector <long double> reduced_weight[MAXN];
 int indegree[MAXN];
 long double dist[MAXN];
 int shortest_path_tree_parent[MAXN];
 set < pair < int, int > > S;
 
-/*
-This function is responsible for reading in the graph.
-*/
+// This function is responsible for reading in the graph.
 void initGraph(string filename)
 {
     char pr_type[3]; //problem type;
@@ -24,10 +21,10 @@ void initGraph(string filename)
     for(string line; getline(file, line); )
     {
         switch(line[0]){
-            case 'c':                  /* skip lines with comments */
-            case '\n':                 /* skip empty lines   */
+            case 'c':
+            case '\n':
             case 'n':
-            case '\0':                 /* skip empty lines at the end of file */
+            case '\0':
                 break;
             case 'p':
             case 'a': {
@@ -39,8 +36,7 @@ void initGraph(string filename)
                 indegree[head]++;
                 break;
             }
-            default:
-                break;
+            default: break;
         }
     }
 }
@@ -84,10 +80,36 @@ void init_shortest_path_tree()
     }
 }
 
+// This function transforms the edge weights to positive so that Djikstra's Algorithm can be applied
+void update_allgraph_weights()
+{
+    for(int i = 1; i <= N; ++i){
+        for(int j = 0; j < edges[i].size(); ++j){
+            cost[i][j] = cost[i][j] + dist[i] - dist[edges[i][j]];
+        }
+    }
+    for(int i = 1; i <= N; ++i)
+        dist[i] = 0;
+}
+
+// This function extracts the shortest path and stores it in shortest_path vector globally
+vector <int> shortest_path;
+void extract_shortest_path(){
+    shortest_path.clear();
+    int curr = N;
+    while(curr != 1){
+        shortest_path.push_back(curr);
+        curr = shortest_path_tree_parent[curr];
+    }
+    shortest_path.push_back(curr);
+}
+
 int main(int argc, char * argv[])
 {
     char* in_file = argv[2];
     initGraph(in_file);
     init_shortest_path_tree();
+    update_allgraph_weights();
+    extract_shortest_path();    
     return 0;
 }
