@@ -44,16 +44,27 @@ void initGraph(string filename)
 // Computes Topological ordering of given graph and stores the order in vector topological_ordering(defined globally).
 vector <int> topological_ordering;
 void toposort(){
+    int tmp_indegree[N + 1];
+    int put[N + 1];
     for(int i = 1; i <= N; ++i){
-        S.insert({indegree[i], i});
+        tmp_indegree[i] = indegree[i];
+        put[i] = 1;
+    }
+    topological_ordering.clear();
+    for(int i = 1; i <= N; ++i){
+        S.insert({tmp_indegree[i], i});
+        
     }
     while(S.empty() == false){
         int node = S.begin() -> second;
         S.erase(S.begin());
+        put[node] = 0;
         for(int j = 0; j < edges[node].size(); ++j){
-            indegree[edges[node][j]]--;
-            S.erase(S.find({indegree[edges[node][j]] + 1, edges[node][j]}));
-            S.insert({indegree[edges[node][j]], edges[node][j]});
+            if(put[edges[node][j]] == 0)
+                continue;
+            tmp_indegree[edges[node][j]]--;
+            S.erase(S.find({tmp_indegree[edges[node][j]] + 1, edges[node][j]}));
+            S.insert({tmp_indegree[edges[node][j]], edges[node][j]});
         }
         topological_ordering.push_back(node);
     }
@@ -104,12 +115,39 @@ void extract_shortest_path(){
     shortest_path.push_back(curr);
 }
 
+// This function flips edges along shortest path extracted.
+void flip_path()
+{
+    int l = shortest_path.size();
+    for(int i = 1; i < l; ++i){
+        
+        // Find edge index
+        vector <int> :: iterator it = find(edges[shortest_path[i]].begin(), edges[shortest_path[i]].end(), shortest_path[i - 1]);
+        int idx = it - edges[shortest_path[i]].begin();
+        
+        // Erase edges
+        edges[shortest_path[i]].erase(edges[shortest_path[i]].begin() + idx);
+        cost[shortest_path[i]].erase(cost[shortest_path[i]].begin() + idx);
+        indegree[shortest_path[i - 1]]--;
+
+        // Add reverse edge
+        if(shortest_path[i] != 1){
+            long double c = cost[shortest_path[i]][idx];
+            edges[shortest_path[i - 1]].push_back(shortest_path[i]);
+            cost[shortest_path[i - 1]].push_back(-c);
+            indegree[shortest_path[i]]++;
+        }
+    }
+}
+
 int main(int argc, char * argv[])
 {
     char* in_file = argv[2];
     initGraph(in_file);
     init_shortest_path_tree();
+    cout << dist[N] << endl;
     update_allgraph_weights();
-    extract_shortest_path();    
+    extract_shortest_path();
+    flip_path();
     return 0;
 }
