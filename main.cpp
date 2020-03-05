@@ -4,9 +4,9 @@ const long double INF = 1e18;
 const int MAXN = 1e5 + 5;
 int N, M; // Number of nodes, Number of edges
 vector <int> edges[MAXN];
-vector <long double> cost[MAXN];
+vector <double> cost[MAXN];
 int indegree[MAXN];
-long double dist[MAXN];
+double dist[MAXN];
 int shortest_path_tree_parent[MAXN];
 set < pair < int, int > > S;
 
@@ -82,7 +82,7 @@ void init_shortest_path_tree()
     for(int i = 0; i < l; ++i){
         int node = topological_ordering[i];
         for(int j = 0; j < edges[node].size(); ++j){
-            long double updated_dist = dist[node] + cost[node][j];
+            double updated_dist = dist[node] + cost[node][j];
             if(updated_dist < dist[edges[node][j]]){
                 dist[edges[node][j]] = updated_dist;
                 shortest_path_tree_parent[edges[node][j]] = node;
@@ -130,7 +130,7 @@ void flip_path()
         cost[shortest_path[i]].erase(cost[shortest_path[i]].begin() + idx);
         indegree[shortest_path[i - 1]]--;
 
-        // Add reverse edge
+        // Add reverse edge. Do not add reverse edge from top sinker to source (otherwise results in formation of cycles)
         if(shortest_path[i] != 1){
             long double c = cost[shortest_path[i]][idx];
             edges[shortest_path[i - 1]].push_back(shortest_path[i]);
