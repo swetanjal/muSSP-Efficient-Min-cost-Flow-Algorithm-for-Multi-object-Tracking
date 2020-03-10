@@ -58,6 +58,7 @@ class ObjectDet:
         confidences = []
         classIDs = []
         cnt = 0
+        unary_score = []
 
         for output in layerOutputs:
             for detection in output:
@@ -75,6 +76,7 @@ class ObjectDet:
                     tmp = frame[int(y-height/2):int(y+height/2), int(x-width/2):int(x+width/2)].shape
                     if tmp[0] != 0 and tmp[1] != 0:
                         cnt += 1
+                        unary_score.append(np.log(1-confidence))
                         # cv2.imwrite(output_name, frame[int(y-height/2):int(y+height/2), int(x-width/2):int(x+width/2)])
                         cv2.imwrite(output_name+'img'+str(cnt)+'.jpg', frame[int(y-height/2):int(y+height/2), int(x-width/2):int(x+width/2)])
                     confidences.append(float(confidence))
@@ -82,6 +84,4 @@ class ObjectDet:
 
             idxs = cv2.dnn.NMSBoxes(boxes, confidences, self.confidence,
                 self.threshold)
-        return 
-
-
+        return unary_score
