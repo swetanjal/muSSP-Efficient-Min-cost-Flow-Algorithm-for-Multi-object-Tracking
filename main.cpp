@@ -83,7 +83,7 @@ void init_shortest_path_tree()
         int node = topological_ordering[i];
         for(int j = 0; j < edges[node].size(); ++j){
             double updated_dist = dist[node] + cost[node][j];
-            if(updated_dist < dist[edges[node][j]]){
+            if(dist[edges[node][j]] - updated_dist > 0.0000001){
                 dist[edges[node][j]] = updated_dist;
                 shortest_path_tree_parent[edges[node][j]] = node;
             }
@@ -140,14 +140,58 @@ void flip_path()
     }
 }
 
+void updateShortestPathTree()
+{
+    for(int i = 1; i <= N; ++i)
+        dist[i] = INF;
+    dist[1] = 0;
+    multimap < double, int > K;
+    K.insert({0, 1});
+    while(K.empty() == false){
+        int node = (K.begin())->second;
+        double c = (K.begin())->first;
+        if(node == N)
+            break;
+        K.erase(K.begin());
+        for(int j = 0; j < edges[node].size(); ++j){
+            long double upd_dist = dist[node] + cost[node][j];
+            if(-0.0000001 > upd_dist - dist[edges[node][j]]){
+                dist[edges[node][j]] = upd_dist;
+                shortest_path_tree_parent[edges[node][j]] = node;
+                K.insert({dist[edges[node][j]], edges[node][j]});
+            }
+        }
+    }
+    for(int i = 1; i <= N; ++i){
+        if(dist[i] > dist[N])
+            dist[i] = dist[N];
+    }
+}
+
 int main(int argc, char * argv[])
 {
     char* in_file = argv[2];
     initGraph(in_file);
     init_shortest_path_tree();
-    cout << dist[N] << endl;
+    double total_cost = dist[N];
     update_allgraph_weights();
     extract_shortest_path();
     flip_path();
+    double curr_cost = total_cost;
+    int c = 1;
+    while(true)
+    {
+        init_shortest_path_tree();
+        curr_cost += dist[N];
+        total_cost += curr_cost;
+        cout << "Iteration " << (c++) << ": "<<  curr_cost << endl;
+        if (curr_cost > -0.0000001) {
+            break;
+        }
+        update_allgraph_weights();
+        extract_shortest_path();
+        flip_path();
+    }
+    cout << total_cost << endl;
     return 0;
 }
