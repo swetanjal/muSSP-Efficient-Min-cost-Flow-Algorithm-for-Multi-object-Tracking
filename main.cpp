@@ -53,7 +53,7 @@ void toposort(){
     topological_ordering.clear();
     for(int i = 1; i <= N; ++i){
         S.insert({tmp_indegree[i], i});
-        
+
     }
     while(S.empty() == false){
         int node = S.begin() -> second;
@@ -120,19 +120,19 @@ void flip_path()
 {
     int l = shortest_path.size();
     for(int i = 1; i < l; ++i){
-        
+
         // Find edge index
         vector <int> :: iterator it = find(edges[shortest_path[i]].begin(), edges[shortest_path[i]].end(), shortest_path[i - 1]);
         int idx = it - edges[shortest_path[i]].begin();
-        
+
         // Erase edges
+        long double c = cost[shortest_path[i]][idx];
         edges[shortest_path[i]].erase(edges[shortest_path[i]].begin() + idx);
         cost[shortest_path[i]].erase(cost[shortest_path[i]].begin() + idx);
         indegree[shortest_path[i - 1]]--;
 
         // Add reverse edge. Do not add reverse edge from top sinker to source (otherwise results in formation of cycles)
         if(shortest_path[i] != 1){
-            long double c = cost[shortest_path[i]][idx];
             edges[shortest_path[i - 1]].push_back(shortest_path[i]);
             cost[shortest_path[i - 1]].push_back(-c);
             indegree[shortest_path[i]]++;
@@ -181,7 +181,7 @@ int main(int argc, char * argv[])
     int c = 1;
     while(true)
     {
-        init_shortest_path_tree();
+        updateShortestPathTree();
         curr_cost += dist[N];
         total_cost += curr_cost;
         cout << "Iteration " << (c++) << ": "<<  curr_cost << endl;
