@@ -131,8 +131,8 @@ void flip_path()
         cost[shortest_path[i]].erase(cost[shortest_path[i]].begin() + idx);
         indegree[shortest_path[i - 1]]--;
 
-        // Add reverse edge. Do not add reverse edge from top sinker to source (otherwise results in formation of cycles)
-        if(shortest_path[i] != 1){
+        // Add reverse edge. Permanent edge clipping: Don't add reverse edges from sink/to source
+        if(shortest_path[i] != 1 && shortest_path[i - 1] != N){
             edges[shortest_path[i - 1]].push_back(shortest_path[i]);
             cost[shortest_path[i - 1]].push_back(-c);
             indegree[shortest_path[i]]++;
