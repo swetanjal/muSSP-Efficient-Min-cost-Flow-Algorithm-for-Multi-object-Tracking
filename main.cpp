@@ -31,9 +31,13 @@ void initGraph(string filename)
                 int tail; int head;
                 double weight;
                 sscanf(line.c_str(), "%*c %d %d %lf", &tail, &head, &weight);
-                edges[tail].push_back(head);
-                cost[tail].push_back(weight);
-                indegree[head]++;
+
+                // Clip Dummy edges that won't appear in any shortest path
+                if((tail == 1) || (head == N) || (tail % 2 == 0) || (weight <= cost[1][(head/2)-1] + cost[tail][0])){
+                    edges[tail].push_back(head);
+                    cost[tail].push_back(weight);
+                    indegree[head]++;
+                }
                 break;
             }
             default: break;
@@ -41,42 +45,6 @@ void initGraph(string filename)
     }
 }
 
-// Clips dummy edges from the graph that won't appear in any shortest path.
-void clip_dummy_edge()
-{
-    // Iterate over all nodes
-    for(int i = 2; i < N; ++i){
-        vector<int> to_delete;
-
-        // Find edge index for u->t edge (here its i->N edge)
-        vector <int> :: iterator it = find(edges[i].begin(), edges[i].end(), N);
-        if(it == edges[i].end())
-            continue;
-        int idx_ut = it - edges[i].begin();
-
-        // Iterate over all edges
-        for(int j = 0; j < edges[i].size(); ++j){
-
-            // Find edge index for s->v (here its 1->v)
-            int v = edges[i][j];
-            vector <int> :: iterator it = find(edges[1].begin(), edges[1].end(), v);
-            int idx_sv = it - edges[1].begin();
-
-            if((v != N) && (cost[i][j] > cost[1][idx_sv] + cost[i][idx_ut])){
-                // Don't delete yet. Add to list of to_delete edges
-                to_delete.push_back(j);
-                indegree[v]--;
-            }
-        }
-
-        // Delete edges in to_delete list
-        for(int j = 0; j < to_delete.size(); ++j){
-            int idx = to_delete[j] - j;
-            edges[i].erase(edges[i].begin() + idx);
-            cost[i].erase(cost[i].begin() + idx);
-        }
-    }
-}
 
 // Computes Topological ordering of given graph and stores the order in vector topological_ordering(defined globally).
 vector <int> topological_ordering;
@@ -209,8 +177,6 @@ int main(int argc, char * argv[])
 {
     char* in_file = argv[2];
     initGraph(in_file);
-    clip_dummy_edge();
-    auto start = chrono::high_resolution_clock::now();
     init_shortest_path_tree();
     double total_cost = dist[N];
     update_allgraph_weights();
@@ -231,9 +197,6 @@ int main(int argc, char * argv[])
         extract_shortest_path();
         flip_path();
     }
-    auto stop = chrono::high_resolution_clock::now();
-    auto duration = chrono::duration_cast<chrono::seconds>(stop - start);
     cout << total_cost << endl;
-    cout << "Time taken: " << duration.count() << " seconds" << endl;
     return 0;
 }
