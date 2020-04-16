@@ -6,9 +6,11 @@ int N, M; // Number of nodes, Number of edges
 vector <int> edges[MAXN];
 vector <double> cost[MAXN];
 int indegree[MAXN];
+int multi_visited[MAXN];
 double dist[MAXN];
 int shortest_path_tree_parent[MAXN];
 set < pair < int, int > > S;
+vector <int> multi;
 
 // This function is responsible for reading in the graph.
 void initGraph(string filename)
@@ -44,7 +46,6 @@ void initGraph(string filename)
         }
     }
 }
-
 
 // Computes Topological ordering of given graph and stores the order in vector topological_ordering(defined globally).
 vector <int> topological_ordering;
@@ -108,39 +109,69 @@ void update_allgraph_weights()
         dist[i] = 0;
 }
 
-// This function extracts the shortest path and stores it in shortest_path vector globally
-vector <int> shortest_path;
-void extract_shortest_path(){
-    shortest_path.clear();
-    int curr = N;
-    while(curr != 1){
-        shortest_path.push_back(curr);
-        curr = shortest_path_tree_parent[curr];
+// Finds multi paths
+void find_multi_path(){
+    // Initialize
+    multimap < double, int > scores;
+    multi.clear();
+
+    // Candidate nodes
+    for(int i = 3; i < N; i+=2){
+        if((edges[i].size() != 0) && (edges[i][0] == N)){
+            scores.insert({dist[i] + cost[i][0], i});
+        }
     }
-    shortest_path.push_back(curr);
+
+    // Check if path is mutually independent
+    while(scores.empty() == false){
+        int node = (scores.begin())->second;
+        int curr = node;
+        while((curr != 1) && (multi_visited[curr] == 0)){
+            multi_visited[curr] = 1;
+            curr = shortest_path_tree_parent[curr];
+        }
+        if(curr == 1){
+            multi.push_back(node);
+        }
+        else{
+            break;
+        }
+    }
+
+    // Clear multi_visited
+    for(int i = 1; i <= N; ++i){
+        multi_visited[i] = 0;
+    }
 }
 
-// This function flips edges along shortest path extracted.
+// This function flips edges along the multiple shortest paths.
 void flip_path()
 {
-    int l = shortest_path.size();
-    for(int i = 1; i < l; ++i){
+    for(int i = 0; i < multi.size(); ++i){
+        int pre = N;
+        int curr = multi[i];
+        while(pre != 1){
 
-        // Find edge index
-        vector <int> :: iterator it = find(edges[shortest_path[i]].begin(), edges[shortest_path[i]].end(), shortest_path[i - 1]);
-        int idx = it - edges[shortest_path[i]].begin();
+            // Find edge index
+            vector <int> :: iterator it = find(edges[curr].begin(), edges[curr].end(), pre);
+            int idx = it - edges[curr].begin();
 
-        // Erase edges
-        long double c = cost[shortest_path[i]][idx];
-        edges[shortest_path[i]].erase(edges[shortest_path[i]].begin() + idx);
-        cost[shortest_path[i]].erase(cost[shortest_path[i]].begin() + idx);
-        indegree[shortest_path[i - 1]]--;
+            // Erase edges
+            long double c = cost[curr][idx];
+            edges[curr].erase(edges[curr].begin() + idx);
+            cost[curr].erase(cost[curr].begin() + idx);
+            indegree[pre]--;
 
-        // Add reverse edge. Permanent edge clipping: Don't add reverse edges from sink/to source
-        if(shortest_path[i] != 1 && shortest_path[i - 1] != N){
-            edges[shortest_path[i - 1]].push_back(shortest_path[i]);
-            cost[shortest_path[i - 1]].push_back(-c);
-            indegree[shortest_path[i]]++;
+            // Add reverse edge. Permanent edge clipping: Don't add reverse edges from sink/to source
+            if(curr != 1 && pre != N){
+                edges[pre].push_back(curr);
+                cost[pre].push_back(-c);
+                indegree[curr]++;
+            }
+
+            // Update
+            pre = curr;
+            curr = shortest_path_tree_parent[curr];
         }
     }
 }
@@ -150,6 +181,7 @@ void updateShortestPathTree()
     for(int i = 1; i <= N; ++i)
         dist[i] = INF;
     dist[1] = 0;
+    shortest_path_tree_parent[1] = -1;
     multimap < double, int > K;
     K.insert({0, 1});
     while(K.empty() == false){
@@ -180,21 +212,29 @@ int main(int argc, char * argv[])
     init_shortest_path_tree();
     double total_cost = dist[N];
     update_allgraph_weights();
-    extract_shortest_path();
+    find_multi_path();
     flip_path();
     double curr_cost = total_cost;
     int c = 1;
+    int flag = 0;
     while(true)
     {
         updateShortestPathTree();
-        curr_cost += dist[N];
-        total_cost += curr_cost;
-        cout << "Iteration " << (c++) << ": "<<  curr_cost << endl;
-        if (curr_cost > -0.0000001) {
+        find_multi_path();
+        for(int i = 0; i < multi.size(); ++i){
+            int node = multi[i];
+            curr_cost += dist[node] + cost[node][0];
+            total_cost += curr_cost;
+            cout << "Iteration " << (c++) << ": "<<  curr_cost << endl;
+            if (curr_cost > -0.0000001) {
+                flag = 1;
+                break;
+            }
+        }
+        if(flag == 1){
             break;
         }
         update_allgraph_weights();
-        extract_shortest_path();
         flip_path();
     }
     cout << total_cost << endl;
