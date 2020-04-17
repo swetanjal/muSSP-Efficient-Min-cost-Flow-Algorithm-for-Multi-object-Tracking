@@ -30,12 +30,13 @@ for f in files:
         # Get coordinates of current bbox
         if int(line.split()[4]) != 0:
             continue
+        frame.append(f.replace('.txt', ''))
         x_min = int(line.split()[0])
         y_min = int(line.split()[1])
         x_max = int(line.split()[2])
         y_max = int(line.split()[3])
         # Appending bbox, pre-node number and post-node number
-        frame.append(f.replace('.txt', ''))
+        
         bbox.append([x_min, y_min, x_max, y_max])
         pre_node.append(cnt)
         post_node.append(cnt + 1)
@@ -106,6 +107,11 @@ def dfs(node):
             color = color % len(codes)
 
 dfs(1)
+
+files = os.listdir(sys.argv[4])
+for f in files:
+    img = cv2.imread(sys.argv[4] + '/' + f)
+    cv2.imwrite(sys.argv[5] + '/' + f, img)
 
 for name in frame:
     f = open(output_folder + '/' + name + '.txt')
