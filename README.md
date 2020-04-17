@@ -1,9 +1,15 @@
 # muSSP-Efficient-Min-cost-Flow-Algorithm-for-Multi-object-Tracking
 
-## Run Code on sample Graph as follows:
-- g++ main.cpp
-- ./a.out -i input_MOT_seq07_followme.txt
-- Feel free to replace the above .txt file with another .txt file containing your own graph. However, ensure the format is followed according to above file
+## Run demo as follows:
+```bash
+>> python3 create_demo.py input_detections_folder graph_file
+>> ./a.out -i graph_file
+>> python3 create_demo.py input_detections_folder output_detections_folder Shortest_Paths.txt input_frames_folder output_frames_folder
+```
 
-## Run Code on sample Person Re id as follows:
-- python3 graph_generator.py
+## Preparing demo data:
+- Extract all the frames (using software like ffmpeg) and put them in input_frames_folder
+- Run a detector like Yolo and store the detections in input_detections_folder. Each image in input_frames_folder has a corresponding detection file with the same name as the image but ending with .txt extension. Every line inside the detection file has a detection in the following format [x_min, y_min, x_max, y_max, class]. Class is 0 for person. 
+- Create empty output_detections_folder and output_frames_folder. 
+- Run commands as mentioned in previous section
+- Put together all the frames from output_frames_folder in a video. 
