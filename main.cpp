@@ -10,6 +10,7 @@ multimap < double, int > candidates;
 vector <int> edges[MAXN], descendants[MAXN];
 vector <int> shortest_path, topological_ordering, nodes4Update;
 int ancestor[MAXN], indegree[MAXN], shortest_path_tree_parent[MAXN];
+ofstream shortest_path_file;
 
 // Read in the graph.
 void initGraph(string filename){
@@ -120,6 +121,7 @@ void extract_shortest_path(){
 // Flip edges along shortest path
 void flip_path(){
     int l = shortest_path.size();
+    shortest_path_file << shortest_path[l - 1] << " ";
     for(int i = 1; i < l; ++i){
 
         // Find edge index
@@ -138,7 +140,9 @@ void flip_path(){
             cost[shortest_path[i - 1]].push_back(-c);
             indegree[shortest_path[i]]++;
         }
+        shortest_path_file << shortest_path[l - 1 - i] << " ";
     }
+    shortest_path_file << '\n';
 }
 
 // Find multi paths
@@ -228,6 +232,7 @@ void updateShortestPathTree(){
 // Main
 int main(int argc, char * argv[]){
     // First iteration without multi-path check
+    shortest_path_file.open("Shortest_Paths.txt");
     char* in_file = argv[2];
     initGraph(in_file);
     init_shortest_path_tree();
