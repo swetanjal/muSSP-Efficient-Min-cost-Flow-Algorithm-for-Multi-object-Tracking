@@ -242,16 +242,24 @@ int main(int argc, char * argv[]){
     updateShortestPathTree();
     extract_shortest_path();
     int flag = 0;
+    int remem = -1;
 
     // Subsequent Iterations
     for(int i = 1; iter_costs.back() <= -0.0000001; ++i)
     {
         // Calc cost of current iteration
         if(flag == 0){
+            if(remem != -1){
+                iter_costs.back() = iter_costs[remem];
+                remem = -1;
+            }
             iter_costs.push_back(dist[SINK] + iter_costs.back());
         }
         else{
             int n = iter_costs.size();
+            if(flag == 1){
+                remem = n - 1;
+            }
             iter_costs.push_back(cost[shortest_path[1]][0] + iter_costs[n - 1 - flag]);
         }
         total_cost += iter_costs.back();
