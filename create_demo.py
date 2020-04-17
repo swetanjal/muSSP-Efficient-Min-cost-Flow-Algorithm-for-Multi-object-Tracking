@@ -82,7 +82,7 @@ for line in FILE:
                 flow[v][j] -= 1
 
 color = 0
-codes = [[0, 0, 0], [255, 0, 0], [0, 255, 0], [0, 0, 255]]
+codes = [[0, 0, 0], [255, 0, 0], [0, 255, 0], [0, 0, 255], [255, 255, 0], [0, 255, 255], [255,218,185], [128, 0, 128]]
 
 output_folder = sys.argv[2]
 
@@ -120,5 +120,5 @@ for name in frame:
     for line in f:
         tok = line.split()
         color = (int(tok[4]), int(tok[5]), int(tok[6]))
-        img = cv2.rectangle(img, (int(tok[0]), int(tok[1])), (int(tok[2]), int(tok[3])), color, 5)
+        img = cv2.rectangle(img, (int(tok[0]), int(tok[1])), (int(tok[2]), int(tok[3])), color, 3)
     cv2.imwrite(sys.argv[5] + '/' + name, img)
