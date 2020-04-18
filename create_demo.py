@@ -1,9 +1,21 @@
-# python3 create_demo.py detections_folder output_detections_folder extracted_paths_file input_frame_folder output_frame_folder
+# python3 create_demo.py detections_folder output_detections_folder extracted_paths_file input_frame_folder output_frame_folder video_folder
 import os
 import numpy as np
 import sys
 import copy
 import cv2
+
+def search(A, val):
+    l = 0; h = len(A) - 1
+    while l <= h:
+        m = (l + h) // 2
+        if A[m] == val:
+            return m
+        elif A[m] < val:
+            l = m + 1
+        else:
+            h = m - 1
+    return -1
 
 edges = []
 flow = []
@@ -74,12 +86,12 @@ for line in FILE:
         u = int(toks[i - 1])
         v = int(toks[i])
         # Find an edge from u to v
-        for j in range(len(edges[u])):
-            if edges[u][j] == v:
-                flow[u][j] += 1
-        for j in range(len(edges[v])):
-            if edges[v][j] == u:
-                flow[v][j] -= 1
+        j = search(edges[u], v)
+        if j != -1:
+            flow[u][j] += 1
+        j = search(edges[v], u)
+        if j != -1:
+            flow[v][j] -= 1
 
 color = 0
 codes = [[0, 0, 0], [255, 0, 0], [0, 255, 0], [0, 0, 255], [255, 255, 0], [0, 255, 255], [255,218,185], [128, 0, 128]]
@@ -96,10 +108,10 @@ def dfs(node):
     for i in range(l):
         if flow[node][i] > 0:
             if (node % 2) == 0:
-                for j in range(len(pre_node)):
-                    if pre_node[j] == node:
-                        t = open(output_folder + '/' + frame[j] + '.txt', 'a')
-                        t.write(str(bbox[j][0]) + " " + str(bbox[j][1]) + " " + str(bbox[j][2]) + " " + str(bbox[j][3]) + " " + str(codes[color][0]) + " " + str(codes[color][1]) + " " + str(codes[color][2]) + "\n")
+                j = search(pre_node, node)
+                assert(j != -1)
+                t = open(output_folder + '/' + frame[j] + '.txt', 'a')
+                t.write(str(bbox[j][0]) + " " + str(bbox[j][1]) + " " + str(bbox[j][2]) + " " + str(bbox[j][3]) + " " + str(codes[color][0]) + " " + str(codes[color][1]) + " " + str(codes[color][2]) + "\n")
             dfs(edges[node][i])
         if node == 1:
             # print("**************************")
@@ -108,10 +120,10 @@ def dfs(node):
 
 dfs(1)
 
-files = os.listdir(sys.argv[4])
-for f in files:
-    img = cv2.imread(sys.argv[4] + '/' + f)
-    cv2.imwrite(sys.argv[5] + '/' + f, img)
+output = -1
+cnt = 0
+
+video_folder = sys.argv[6]
 
 for name in frame:
     f = open(output_folder + '/' + name + '.txt')
@@ -121,4 +133,11 @@ for name in frame:
         tok = line.split()
         color = (int(tok[4]), int(tok[5]), int(tok[6]))
         img = cv2.rectangle(img, (int(tok[0]), int(tok[1])), (int(tok[2]), int(tok[3])), color, 3)
-    cv2.imwrite(sys.argv[5] + '/' + name, img)
+    if cnt == 0:
+        fps = 60
+        height, width, channels = img.shape
+        frame_size = (width, height)
+        output = cv2.VideoWriter(video_folder, cv2.VideoWriter_fourcc(*'mp4v'), fps, frame_size)
+        cnt = 1
+    output.write(img)
+output.release()

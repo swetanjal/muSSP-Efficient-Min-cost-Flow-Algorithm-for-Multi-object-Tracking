@@ -4,6 +4,18 @@ import numpy as np
 import sys
 import copy
 
+def search(A, val):
+    l = 0; h = len(A) - 1
+    while l <= h:
+        m = (l + h) // 2
+        if A[m] == val:
+            return m
+        elif A[m] < val:
+            l = m + 1
+        else:
+            h = m - 1
+    assert(False)
+
 def IoU(box1, box2):
     """
     calculate intersection over union cover percent
@@ -94,17 +106,14 @@ OUT.write("p min " + str(cnt) + " " + str(edge_cnt) + "\n")
 
 for i in range(2, cnt, 2):
     # Source node to pre-node
-    for j in range(len(edges[1])):
-        if edges[1][j] == i:
-            OUT.write("a 1" + " " + str(edges[1][j]) + " " + str(cost[1][j]) + "\n")
+    j = search(edges[1], i)
+    OUT.write("a 1" + " " + str(edges[1][j]) + " " + str(cost[1][j]) + "\n")
     # Pre node to post node
-    for j in range(len(edges[i])):
-        if edges[i][j] == i + 1:
-            OUT.write("a " + str(i) + " " + str(edges[i][j]) + " " + str(cost[i][j]) + "\n")
+    j = search(edges[i], i + 1)
+    OUT.write("a " + str(i) + " " + str(edges[i][j]) + " " + str(cost[i][j]) + "\n")
     # Post node to sink
-    for j in range(len(edges[i + 1])):
-        if edges[i + 1][j] == cnt:
-            OUT.write("a " + str(i + 1) + " " + str(edges[i + 1][j]) + " " + str(cost[i + 1][j]) + "\n")
+    j = search(edges[i + 1], cnt)
+    OUT.write("a " + str(i + 1) + " " + str(edges[i + 1][j]) + " " + str(cost[i + 1][j]) + "\n")
 
 for i in range(3, cnt, 2):
     for j in range(len(edges[i])):
