@@ -158,6 +158,8 @@ bool find_multi_path(){
     if(!candidates.empty()){
         int node = (candidates.begin())->second;
         candidates.erase(candidates.begin());
+        if(dist[node] != 0)
+            return false;
 
         int n = shortest_path.size();
         vector <int> :: iterator it = find(nodes4Update.begin(), nodes4Update.end(), node);
@@ -236,8 +238,10 @@ bool updateShortestPathTree(bool first){
                 }
 
                 // If disconnected node
-                if((shortest_path_tree_parent[node] == 0) && (parent == -1))
+                if((shortest_path_tree_parent[node] == 0) && (parent == -1)){
                     ancestor[node] = node;
+                    K.insert({dist[node], node});
+                }
                 // If parent in 0-tree continues to be best
                 else if((parent != -1) && (dist[parent] < dist[node])){
                     dist[node] = dist[parent];
@@ -269,7 +273,7 @@ bool updateShortestPathTree(bool first){
         // Iterate over node's edges
         for(int j = 0; j < edges[node].size(); ++j){
             long double upd_dist = dist[node] + cost[node][j];
-            if(-0.0000001 > upd_dist - dist[edges[node][j]]){
+            if((-0.0000001 > upd_dist - dist[edges[node][j]]) || ((upd_dist > dist[edges[node][j]]) && (shortest_path_tree_parent[edges[node][j]] == node))){
                 dist[edges[node][j]] = upd_dist;
                 shortest_path_tree_parent[edges[node][j]] = node;
                 K.insert({dist[edges[node][j]], edges[node][j]});
@@ -283,18 +287,18 @@ bool updateShortestPathTree(bool first){
         }
     }
 
+    // For updating sink
+    for(int i = 3; i < N; i+=2){
+        if((edges[i].size() != 0) && (edges[i][0] == SINK) && (dist[i] != INF)){
+            candidates.insert({dist[i] + cost[i][0], i});
+        }
+    }
+
     // Placing max distance constraint
     for(int i = 2; i < N; ++i){
         if(dist[i] > dist[N])
             dist[i] = dist[N];
         descendants[ancestor[i]].push_back(i);
-    }
-
-    // For updating sink
-    for(int i = 3; i < N; i+=2){
-        if((edges[i].size() != 0) && (edges[i][0] == SINK) && (dist[i] == 0)){
-            candidates.insert({dist[i] + cost[i][0], i});
-        }
     }
 
     // If there are no more s-t paths
