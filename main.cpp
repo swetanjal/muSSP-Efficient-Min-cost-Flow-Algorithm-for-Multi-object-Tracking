@@ -1,35 +1,51 @@
 #include "bits/stdc++.h"
 using namespace std;
 const int MAXN = 1e5 + 5;
-const long double INF = 1e18;
-int N, M, SRC, SINK; // Number of nodes, Number of edges, Source, Sink
+const long double INF = 1e17;
+
+int N, M, SRC, SINK;
 double dist[MAXN];
-vector <double> cost[MAXN], prec_cost[MAXN];
-set < pair < int, int > > S;
-multimap < double, int > candidates;
-vector <int> edges[MAXN], prec_edges[MAXN], descendants[MAXN];
+int ancestor[MAXN], indegree[MAXN], shortest_path_tree_parent[MAXN], visited[MAXN];
 vector <int> shortest_path, topological_ordering, nodes4Update, root0;
-int ancestor[MAXN], old_ancestor[MAXN], indegree[MAXN], shortest_path_tree_parent[MAXN];
+vector <int> edges[MAXN], descendants[MAXN];
+vector <double> cost[MAXN];
+
+set < pair < int, int > > S;
+map < int, int > anc0;
+multimap < double, int > candidates;
 ofstream shortest_path_file;
+
+
+// For adding distances. Want to prevent overflow when distance is INF.
+double add_dist(double dist1, double dist2){
+    if(dist1 == INF || dist2 == INF)
+        return INF;
+    else
+        return dist1 + dist2;
+}
+
+// For subtracting distances. Want to prevent overflow when distance is INF.
+double sub_dist(double dist1, double dist2){
+    if(dist1 == INF && dist2 == INF)
+        return 0;
+    else if(dist1 == INF)
+        return INF;
+    else if(dist2 == INF)
+        return -INF;
+    else
+        return dist1 - dist2;
+}
 
 // Read in the graph.
 void initGraph(string filename){
-    char pr_type[3]; //problem type;
+    char pr_type[3];
     ifstream file(filename);
     string line_inf;
     getline(file, line_inf);
     sscanf(line_inf.c_str(), "%*c %3s %d %d", pr_type, &N, &M);
-    SRC = 1;
-    SINK = N;
-    for(string line; getline(file, line); )
-    {
+    SRC = 1; SINK = N;
+    for(string line; getline(file, line);){
         switch(line[0]){
-            case 'c':
-            case '\n':
-            case 'n':
-            case '\0':
-                break;
-            case 'p':
             case 'a': {
                 int tail; int head;
                 double weight;
@@ -39,8 +55,6 @@ void initGraph(string filename){
                 if((tail == SRC) || (head == SINK) || (tail % 2 == 0) || (weight <= cost[SRC][(head/2)-1] + cost[tail][0])){
                     edges[tail].push_back(head);
                     cost[tail].push_back(weight);
-                    prec_edges[head].push_back(tail);
-                    prec_cost[head].push_back(weight);
                     indegree[head]++;
                 }
                 break;
@@ -61,7 +75,6 @@ void toposort(){
     topological_ordering.clear();
     for(int i = 1; i <= N; ++i){
         S.insert({tmp_indegree[i], i});
-
     }
     while(S.empty() == false){
         int node = S.begin() -> second;
@@ -82,19 +95,18 @@ void toposort(){
 void init_shortest_path_tree(){
     // Initialization
     toposort();
-    int l = topological_ordering.size();
     for(int i = 1; i <= N; ++i)
         dist[i] = INF;
     dist[topological_ordering[0]] = 0;
     shortest_path_tree_parent[topological_ordering[0]] = -1; // Source
 
     // Iterate
-    for(int i = 0; i < l; ++i){
+    for(int i = 0; i < topological_ordering.size(); ++i){
         int node = topological_ordering[i];
         for(int j = 0; j < edges[node].size(); ++j){
-            double updated_dist = dist[node] + cost[node][j];
+            double updated_dist = add_dist(dist[node], cost[node][j]);
 
-            if(dist[edges[node][j]] - updated_dist > 0.0000001){
+            if(updated_dist < dist[edges[node][j]]){
                 dist[edges[node][j]] = updated_dist;
                 shortest_path_tree_parent[edges[node][j]] = node;
 
@@ -113,7 +125,7 @@ void init_shortest_path_tree(){
 void extract_shortest_path(){
     shortest_path.clear();
     int curr = SINK;
-    while(curr != 1){
+    while(curr != SRC){
         shortest_path.push_back(curr);
         curr = shortest_path_tree_parent[curr];
     }
@@ -133,19 +145,10 @@ void flip_path(){
         edges[shortest_path[i]].erase(edges[shortest_path[i]].begin() + idx);
         cost[shortest_path[i]].erase(cost[shortest_path[i]].begin() + idx);
 
-        // Erase Precursor edge
-        it = find(prec_edges[shortest_path[i - 1]].begin(), prec_edges[shortest_path[i - 1]].end(), shortest_path[i]);
-        int idx2 = it - prec_edges[shortest_path[i - 1]].begin();
-        long double c2 = prec_cost[shortest_path[i - 1]][idx2];
-        prec_edges[shortest_path[i - 1]].erase(prec_edges[shortest_path[i - 1]].begin() + idx2);
-        prec_cost[shortest_path[i - 1]].erase(prec_cost[shortest_path[i - 1]].begin() + idx2);
-
         // Add reverse edge. Permanent edge clipping: Don't add reverse edges from sink/to source
-        if(shortest_path[i] != 1 && shortest_path[i - 1] != N){
+        if(shortest_path[i] != SRC && shortest_path[i - 1] != SINK){
             edges[shortest_path[i - 1]].push_back(shortest_path[i]);
             cost[shortest_path[i - 1]].push_back(-c);
-            prec_edges[shortest_path[i]].push_back(shortest_path[i - 1]);
-            prec_cost[shortest_path[i]].push_back(-c2);
         }
         shortest_path_file << shortest_path[l - 1 - i] << " ";
     }
@@ -172,91 +175,134 @@ bool find_multi_path(){
         else
             return false;
     }
+    else
+        return false;
 }
 
 // Transforms the edge weights to positive so that Djikstra's Algorithm can be applied
 void update_allgraph_weights(){
-    // Standard Edges
     for(int i = 1; i <= N; ++i){
         for(int j = 0; j < edges[i].size(); ++j){
-            cost[i][j] = cost[i][j] + dist[i] - dist[edges[i][j]];
-        }
-    }
-
-    // Precursor edges
-    for(int i = 1; i <= N; ++i){
-        for(int j = 0; j < prec_edges[i].size(); ++j){
-            prec_cost[i][j] = prec_cost[i][j] + dist[prec_edges[i][j]] - dist[i];
+            cost[i][j] = sub_dist(add_dist(cost[i][j], dist[i]), dist[edges[i][j]]);
         }
     }
 }
 
-// Update shortest path tree using Dijkstra
-bool updateShortestPathTree(bool first){
+// Update shortest path tree using Dijkstra without optimizations
+void updateShortestPathTree_stand(){
     // Initialization
     for(int i = 1; i <= N; ++i){
         descendants[i].clear();
-        old_ancestor[i] = ancestor[i];
-        if(first)
-            dist[i] = INF;
+        dist[i] = INF;
+    }
+    candidates.clear();
+    multimap < double, int > K;
+    K.insert({0, 1});
+    dist[1] = 0;
+
+    // Go through heap
+    while(K.empty() == false){
+        int node = (K.begin())->second;
+        double c = (K.begin())->first;
+        K.erase(K.begin());
+
+        // Iterate over node's edges
+        for(int j = 0; j < edges[node].size(); ++j){
+            long double upd_dist = add_dist(dist[node], cost[node][j]);
+            if(upd_dist < dist[edges[node][j]]){
+                dist[edges[node][j]] = upd_dist;
+                shortest_path_tree_parent[edges[node][j]] = node;
+                K.insert({dist[edges[node][j]], edges[node][j]});
+                if(node == SRC)
+                    ancestor[edges[node][j]] = edges[node][j];
+                else
+                    ancestor[edges[node][j]] = ancestor[node];
+            }
+        }
+    }
+
+    // For updating candidates and descendants
+    for(int i = 2; i < N; ++i){
+        descendants[ancestor[i]].push_back(i);
+        if((i % 2 == 1) && (edges[i].size() != 0) && (edges[i][0] == SINK) && (dist[i] != INF))
+            candidates.insert({add_dist(dist[i], cost[i][0]), i});
+    }
+    int node = (candidates.begin())->second;
+    candidates.erase(candidates.begin());
+}
+
+// Update shortest path tree using Dijkstra
+void updateShortestPathTree(){
+    // Initialization
+    for(int i = 1; i <= N; ++i){
+        descendants[i].clear();
+        visited[i] = 0;
+    }
+    for(int i = 0; i < nodes4Update.size(); ++i){
+        dist[nodes4Update[i]] = INF;
+        shortest_path_tree_parent[nodes4Update[i]] = 0;
+        ancestor[nodes4Update[i]] = 0;
     }
     candidates.clear();
     multimap < double, int > K;
 
-    if(first){
-        K.insert({0, 1});
-        dist[1] = 0;
+    // Relax edges between nodes outside 0-tree to inside through bfs
+    queue < int > bfs;
+    bfs.push(SRC);
+    visited[SRC] = 1;
+    while(!bfs.empty()){
+        int node = bfs.front();
+        bfs.pop();
+
+        // Iterate through all edges of node
+        for(int i = 0; i < edges[node].size(); ++i){
+            int anc = ancestor[edges[node][i]];
+
+            // If child in 0-tree
+            if(anc0.find(anc) != anc0.end()){
+                double upt_dist = add_dist(dist[node], cost[node][i]);
+                if(upt_dist < dist[edges[node][i]]){
+                    dist[edges[node][i]] = upt_dist;
+                    shortest_path_tree_parent[edges[node][i]] = node;
+                    if(node == SRC)
+                        ancestor[edges[node][i]] = edges[node][i];
+                    else
+                        ancestor[edges[node][i]] = ancestor[node];
+                }
+            }
+            else if(visited[edges[node][i]] == 0){
+                visited[edges[node][i]] = 1;
+                bfs.push(edges[node][i]);
+            }
+        }
     }
-    else{
-        // For each 0-tree corresponding to each path if multiple paths
-        for(int i = 0; i < root0.size(); ++i){
-            queue < pair < int, int > > bfs;
-            bfs.push(make_pair(root0[i], -1));
-            int anc = ancestor[root0[i]];
 
-            // BFS update of 0-tree
-            while(!bfs.empty()){
-                int node = bfs.front().first;
-                int parent = bfs.front().second;
-                bfs.pop();
-                dist[node] = INF;
-                shortest_path_tree_parent[node] = 0;
+    // For each 0-tree
+    for(int i = 0; i < root0.size(); ++i){
+        int root = root0[i];
+        bfs.push(root);
+        K.insert({dist[root], root});
 
-                // Update distance based on precursors outside 0-tree
-                for(int j = 0; j < prec_edges[node].size(); ++j){
-                    int precursor = prec_edges[node][j];
-                    if((old_ancestor[precursor] != anc) && (dist[precursor] + prec_cost[node][j] < dist[node])){
-                        dist[node] = dist[precursor] + prec_cost[node][j];
-                        shortest_path_tree_parent[node] = precursor;
+        // Update within 0-tree through bfs
+        while(!bfs.empty()){
+            int node = bfs.front();
+            bfs.pop();
 
-                        // Update Ancestor
-                        if(precursor == SRC)
-                            ancestor[node] = node;
+            // Iterate through all edges of node
+            for(int j = 0; j < edges[node].size(); ++j){
+                if(cost[node][j] == 0){
+                    if(dist[edges[node][j]] > dist[node]){
+                        dist[edges[node][j]] = dist[node];
+                        shortest_path_tree_parent[edges[node][j]] = node;
+                        if(node == SRC)
+                            ancestor[edges[node][j]] = edges[node][j];
                         else
-                            ancestor[node] = ancestor[precursor];
+                            ancestor[edges[node][j]] = ancestor[node];
                     }
-                }
-
-                // If disconnected node
-                if((shortest_path_tree_parent[node] == 0) && (parent == -1)){
-                    ancestor[node] = node;
-                    K.insert({dist[node], node});
-                }
-                // If parent in 0-tree continues to be best
-                else if((parent != -1) && (dist[parent] < dist[node])){
-                    dist[node] = dist[parent];
-                    shortest_path_tree_parent[node] = parent;
-                    ancestor[node] = ancestor[parent];
-                }
-                // If new shortest path parent is outside 0-tree
-                else
-                    K.insert({dist[node], node});
-
-                // Push children in 0-tree in BFS queue
-                for(int j = 0; j < edges[node].size(); ++j){
-                    if(cost[node][j] == 0 && old_ancestor[edges[node][j]] == anc){
-                        bfs.push(make_pair(edges[node][j], node));
+                    else{
+                        K.insert({dist[edges[node][j]], edges[node][j]});
                     }
+                    bfs.push(edges[node][j]);
                 }
             }
         }
@@ -272,13 +318,11 @@ bool updateShortestPathTree(bool first){
 
         // Iterate over node's edges
         for(int j = 0; j < edges[node].size(); ++j){
-            long double upd_dist = dist[node] + cost[node][j];
-            if((-0.0000001 > upd_dist - dist[edges[node][j]]) || ((upd_dist > dist[edges[node][j]]) && (shortest_path_tree_parent[edges[node][j]] == node))){
+            long double upd_dist = add_dist(dist[node], cost[node][j]);
+            if(upd_dist <= dist[edges[node][j]]){
                 dist[edges[node][j]] = upd_dist;
                 shortest_path_tree_parent[edges[node][j]] = node;
                 K.insert({dist[edges[node][j]], edges[node][j]});
-
-                // Ancestors and Descendants for easily finding Nodes4Updates
                 if(node == SRC)
                     ancestor[edges[node][j]] = edges[node][j];
                 else
@@ -287,32 +331,20 @@ bool updateShortestPathTree(bool first){
         }
     }
 
-    // For updating sink
-    for(int i = 3; i < N; i+=2){
-        if((edges[i].size() != 0) && (edges[i][0] == SINK) && (dist[i] != INF)){
-            candidates.insert({dist[i] + cost[i][0], i});
+    // For updating candidates and descendants
+    for(int i = 2; i < N; ++i){
+        descendants[ancestor[i]].push_back(i);
+        if((i % 2 == 1) && (edges[i].size() != 0) && (edges[i][0] == SINK) && (dist[i] != INF)){
+            candidates.insert({add_dist(dist[i], cost[i][0]), i});
         }
     }
 
-    // Placing max distance constraint
-    for(int i = 2; i < N; ++i){
-        if(dist[i] > dist[N])
-            dist[i] = dist[N];
-        descendants[ancestor[i]].push_back(i);
-    }
-
-    // If there are no more s-t paths
-    if(candidates.size() == 0)
-        return false;
-    else{
-        // If there are
-        int node = (candidates.begin())->second;
-        candidates.erase(candidates.begin());
-        dist[SINK] = dist[node] + cost[node][0];
-        shortest_path_tree_parent[SINK] = node;
-        ancestor[SINK] = ancestor[node];
-        return true;
-    }
+    // Update Sink with best candidate
+    int node = (candidates.begin())->second;
+    candidates.erase(candidates.begin());
+    dist[SINK] = add_dist(dist[node], cost[node][0]);
+    shortest_path_tree_parent[SINK] = node;
+    ancestor[SINK] = ancestor[node];
 }
 
 // Main
@@ -330,10 +362,9 @@ int main(int argc, char * argv[]){
     double total_cost = iter_costs.back();
     update_allgraph_weights();
     flip_path();
-    updateShortestPathTree(true);
+    updateShortestPathTree_stand();
     extract_shortest_path();
-    int flag = 0;
-    int remem = -1;
+    int flag = 0; int remem = -1;
 
     // Subsequent Iterations
     for(int i = 1; iter_costs.back() <= -0.0000001; ++i)
@@ -357,6 +388,7 @@ int main(int argc, char * argv[]){
 
         int n = shortest_path.size();
         cout << "Iteration " << i << ": "<<  iter_costs.back() << endl;
+        anc0.insert({shortest_path[n - 2], 1});
         root0.push_back(shortest_path[1]);
         nodes4Update.insert(nodes4Update.end(), descendants[shortest_path[n-2]].begin(), descendants[shortest_path[n-2]].end());
 
@@ -368,12 +400,12 @@ int main(int argc, char * argv[]){
         else{
             update_allgraph_weights();
             flip_path();
-            if(!updateShortestPathTree(true))
-                break;
+            updateShortestPathTree_stand();
 
             // Clear accumulated stuff
             flag = 0;
             nodes4Update.clear();
+            anc0.clear();
             root0.clear();
         }
         extract_shortest_path();
