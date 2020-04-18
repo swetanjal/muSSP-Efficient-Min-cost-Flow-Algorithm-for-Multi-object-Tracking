@@ -190,7 +190,7 @@ void update_allgraph_weights(){
 }
 
 // Update shortest path tree using Dijkstra
-void updateShortestPathTree(bool first){
+bool updateShortestPathTree(bool first){
     // Initialization
     for(int i = 1; i <= N; ++i){
         descendants[i].clear();
@@ -296,11 +296,19 @@ void updateShortestPathTree(bool first){
             candidates.insert({dist[i] + cost[i][0], i});
         }
     }
-    int node = (candidates.begin())->second;
-    candidates.erase(candidates.begin());
-    dist[SINK] = dist[node] + cost[node][0];
-    shortest_path_tree_parent[SINK] = node;
-    ancestor[SINK] = ancestor[node];
+
+    // If there are no more s-t paths
+    if(candidates.size() == 0)
+        return false;
+    else{
+        // If there are
+        int node = (candidates.begin())->second;
+        candidates.erase(candidates.begin());
+        dist[SINK] = dist[node] + cost[node][0];
+        shortest_path_tree_parent[SINK] = node;
+        ancestor[SINK] = ancestor[node];
+        return true;
+    }
 }
 
 // Main
@@ -356,7 +364,8 @@ int main(int argc, char * argv[]){
         else{
             update_allgraph_weights();
             flip_path();
-            updateShortestPathTree(true);
+            if(!updateShortestPathTree(true))
+                break;
 
             // Clear accumulated stuff
             flag = 0;
