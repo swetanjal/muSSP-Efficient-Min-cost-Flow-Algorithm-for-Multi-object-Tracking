@@ -5,6 +5,7 @@ import sys
 import copy
 import cv2
 
+sys.setrecursionlimit(10000000)
 def search(A, val):
     l = 0; h = len(A) - 1
     while l <= h:
