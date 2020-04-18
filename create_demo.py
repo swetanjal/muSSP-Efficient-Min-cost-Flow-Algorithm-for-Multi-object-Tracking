@@ -1,10 +1,11 @@
-# python3 create_demo.py detections_folder output_detections_folder extracted_paths_file input_frame_folder output_frame_folder video_folder
+# python3 create_demo.py input_detections_folder output_detections_folder extracted_paths_file input_frame_folder output_frame_folder video_folder
 import os
 import numpy as np
 import sys
 import copy
 import cv2
 
+sys.setrecursionlimit(10000000)
 def search(A, val):
     l = 0; h = len(A) - 1
     while l <= h:
@@ -140,4 +141,5 @@ for name in frame:
         output = cv2.VideoWriter(video_folder, cv2.VideoWriter_fourcc(*'mp4v'), fps, frame_size)
         cnt = 1
     output.write(img)
+    cv2.imwrite(sys.argv[5] + '/' + name, img)
 output.release()
