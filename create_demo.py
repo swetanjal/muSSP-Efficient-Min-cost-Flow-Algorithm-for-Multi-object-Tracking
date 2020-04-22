@@ -1,9 +1,11 @@
-# python3 create_demo.py input_detections_folder output_detections_folder extracted_paths_file input_frame_folder output_frame_folder video_folder
+# python3 create_demo.py input_detections_folder output_detections_folder extracted_paths_file input_frame_folder output_frame_folder video_folder path_to_output_file
 import os
 import numpy as np
 import sys
 import copy
 import cv2
+
+res = open(sys.argv[7], "w")
 
 sys.setrecursionlimit(10000000)
 def search(A, val):
@@ -44,10 +46,10 @@ for f in files:
         if int(line.split()[4]) != 0:
             continue
         frame.append(f.replace('.txt', ''))
-        x_min = int(line.split()[0])
-        y_min = int(line.split()[1])
-        x_max = int(line.split()[2])
-        y_max = int(line.split()[3])
+        x_min = float(line.split()[0])
+        y_min = float(line.split()[1])
+        x_max = float(line.split()[2])
+        y_max = float(line.split()[3])
         # Appending bbox, pre-node number and post-node number
         
         bbox.append([x_min, y_min, x_max, y_max])
@@ -103,8 +105,10 @@ for k in frame:
     t = open(output_folder + '/' + k + '.txt', 'w')
     t.write("")
 
+ids = 1
 def dfs(node):
     global color
+    global ids
     l = len(edges[node])
     for i in range(l):
         if flow[node][i] > 0:
@@ -113,14 +117,16 @@ def dfs(node):
                 assert(j != -1)
                 t = open(output_folder + '/' + frame[j] + '.txt', 'a')
                 t.write(str(bbox[j][0]) + " " + str(bbox[j][1]) + " " + str(bbox[j][2]) + " " + str(bbox[j][3]) + " " + str(codes[color][0]) + " " + str(codes[color][1]) + " " + str(codes[color][2]) + "\n")
+                res.write(str(int(frame[j].replace(sys.argv[8], ''))) + "," + str(ids) + "," + str(bbox[j][0]) + "," + str(bbox[j][1]) + "," + str(bbox[j][2] - bbox[j][0] + 1) + "," + str(bbox[j][3] - bbox[j][1] + 1) + ",-1,-1,-1,-1\n")
+                t.close()
             dfs(edges[node][i])
         if node == 1:
             # print("**************************")
             color += 1
+            ids += 1
             color = color % len(codes)
 
 dfs(1)
-
 output = -1
 cnt = 0
 
@@ -133,9 +139,9 @@ for name in frame:
     for line in f:
         tok = line.split()
         color = (int(tok[4]), int(tok[5]), int(tok[6]))
-        img = cv2.rectangle(img, (int(tok[0]), int(tok[1])), (int(tok[2]), int(tok[3])), color, 3)
+        img = cv2.rectangle(img, (int(float(tok[0])), int(float(tok[1]))), (int(float(tok[2])), int(float(tok[3]))), color, 3)
     if cnt == 0:
-        fps = 60
+        fps = 65
         height, width, channels = img.shape
         frame_size = (width, height)
         output = cv2.VideoWriter(video_folder, cv2.VideoWriter_fourcc(*'mp4v'), fps, frame_size)
@@ -143,3 +149,4 @@ for name in frame:
     output.write(img)
     cv2.imwrite(sys.argv[5] + '/' + name, img)
 output.release()
+res.close()

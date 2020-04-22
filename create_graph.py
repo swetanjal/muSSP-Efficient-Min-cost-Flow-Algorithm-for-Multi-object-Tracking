@@ -67,10 +67,10 @@ for f in files:
         # Get coordinates of current bbox
         if int(line.split()[4]) != 0:
             continue
-        x_min = int(line.split()[0])
-        y_min = int(line.split()[1])
-        x_max = int(line.split()[2])
-        y_max = int(line.split()[3])
+        x_min = float(line.split()[0])
+        y_min = float(line.split()[1])
+        x_max = float(line.split()[2])
+        y_max = float(line.split()[3])
         # Appending bbox, pre-node number and post-node number
         bbox.append([x_min, y_min, x_max, y_max])
         pre_node.append(cnt)
