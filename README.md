@@ -17,3 +17,10 @@
 - Run a detector like Yolo and store the detections in input_detections_folder. Each image in input_frames_folder has a corresponding detection file with the same name as the image but ending with .txt extension. Every line inside the detection file has a detection in the following format [x_min, y_min, x_max, y_max, class]. Class is 0 for person. 
 - Create empty output_detections_folder and output_frames_folder. 
 - Run commands as mentioned in previous section.
+
+## Demo:
+- https://www.youtube.com/watch?v=53r4WUOPvPA
+- https://www.youtube.com/watch?v=wwhGrDFN1W8
+- https://www.youtube.com/watch?v=eQBFRRduv1s
+- https://www.youtube.com/watch?v=pisYGk1Sumo
+- https://www.youtube.com/watch?v=4LlgBuAjaFg
