@@ -1,5 +1,10 @@
 # muSSP-Efficient-Min-cost-Flow-Algorithm-for-Multi-object-Tracking
 
+# Team Members:
+- Teja Dhondu
+- Swetanjal Dutta
+- Nishanth Sharma
+
 ## Run demo as follows:
 ```bash
 >> python3 create_graph.py input_detections_folder graph_file
